@@ -22,6 +22,7 @@ pub struct Metar {
     pub station: String,
     pub observation_time: String,
     pub automated_report: bool,
+    pub wind: String,
 }
 
 impl FromStr for Metar {
@@ -33,6 +34,7 @@ impl FromStr for Metar {
         let mut station = None;
         let mut observation_time = None;
         let mut automated_report = false;
+        let mut wind = None;
 
         for record in parsed.into_inner() {
             match record.as_rule() {
@@ -45,6 +47,9 @@ impl FromStr for Metar {
                 Rule::auto_kw => {
                     automated_report = true;
                 }
+                Rule::wind => {
+                    wind = Some(record.as_str().to_owned());
+                }
                 _ => unreachable!(),
             }
         }
@@ -55,6 +60,7 @@ impl FromStr for Metar {
             observation_time: observation_time
                 .ok_or_else(|| ParseError::MissingElement("Observation time".to_owned()))?,
             automated_report,
+            wind: wind.ok_or_else(|| ParseError::MissingElement("Wind".to_owned()))?
         })
     }
 }
@@ -70,6 +76,7 @@ mod tests {
             station: "KTTA".to_owned(),
             observation_time: "031530Z".to_owned(),
             automated_report: true,
+            wind: "04008KT".to_owned(),
         };
 
         let received: Metar = raw.parse().expect("should be parseable");

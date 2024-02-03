@@ -1,8 +1,14 @@
-METAR = { station ~ observation_time ~ auto_kw? }
+METAR = { station ~ observation_time ~ auto_kw? ~ wind }
 
 station = { (ASCII_ALPHA_UPPER | ASCII_DIGIT){4} }
 observation_time = { ASCII_DIGIT{6} ~ "Z" }
 
 auto_kw = { "AUTO" }
+
+// Mark wind as "compound atomic" rule to prohibit whitespace between elements.
+wind = ${ direction ~ ASCII_DIGIT{2} ~ "KT" }
+
+// Compass direction given as 3 digits.
+direction = { ASCII_DIGIT{3} }
 
 WHITESPACE = _{ " " }
