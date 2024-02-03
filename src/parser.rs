@@ -1,7 +1,7 @@
 use pest::Parser;
 use pest_derive::Parser;
 
-use crate::{Metar, Wind};
+use crate::{metar, Metar};
 
 #[derive(Parser)]
 #[grammar = "metar.pest"]
@@ -26,6 +26,7 @@ pub fn parse_metar(metar: &str) -> Result<Metar, ParseError> {
     let mut observation_time = None;
     let mut automated_report = false;
     let mut wind = None;
+    let mut visibility = None;
 
     for pair in parsed.into_inner() {
         match pair.as_rule() {
@@ -45,10 +46,16 @@ pub fn parse_metar(metar: &str) -> Result<Metar, ParseError> {
                 let raw_direction = pairs.next().unwrap().as_str();
                 let raw_speed = pairs.next().unwrap().as_str();
 
-                wind = Some(Wind {
+                wind = Some(metar::Wind {
                     direction: raw_direction.parse().unwrap(),
                     speed: raw_speed.parse().unwrap(),
                 });
+            }
+            Rule::visibility => {
+                let mut pairs = pair.into_inner();
+                let raw_distance = pairs.next().unwrap().as_str();
+
+                visibility = Some(metar::Visibility::SM(raw_distance.parse().unwrap()))
             }
             _ => unreachable!(),
         }
@@ -60,5 +67,7 @@ pub fn parse_metar(metar: &str) -> Result<Metar, ParseError> {
             .ok_or_else(|| ParseError::MissingElement("Observation time".to_owned()))?,
         automated_report,
         wind: wind.ok_or_else(|| ParseError::MissingElement("Wind".to_owned()))?,
+        visibility: visibility
+            .ok_or_else(|| ParseError::MissingElement("Visibility".to_owned()))?,
     })
 }

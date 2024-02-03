@@ -1,4 +1,4 @@
-use metars::{Metar, Wind};
+use metars::{metar, Metar};
 
 #[test]
 fn basic_metar() {
@@ -7,10 +7,11 @@ fn basic_metar() {
         station: "KTTA".to_owned(),
         observation_time: "031530Z".to_owned(),
         automated_report: true,
-        wind: Wind {
+        wind: metar::Wind {
             direction: 40,
             speed: 8,
         },
+        visibility: metar::Visibility::SM(10),
     };
 
     let received: Metar = raw.parse().expect("should be parseable");
