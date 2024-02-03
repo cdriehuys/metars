@@ -3,7 +3,10 @@ use std::{error::Error, num::ParseFloatError};
 use pest::{iterators::Pair, Parser};
 use pest_derive::Parser;
 
-use crate::{metar, Metar};
+use crate::{
+    metar::{self, Clouds},
+    Metar,
+};
 
 #[derive(Parser)]
 #[grammar = "metar.pest"]
@@ -64,7 +67,36 @@ pub fn parse_metar(metar: &str) -> Result<Metar, ParseError> {
                 });
             }
             Rule::visibility => visibility = Some(pair.as_str().parse()?),
-            Rule::clouds => clouds = Some(metar::Clouds::Clear),
+            Rule::clouds => {
+                // Clouds are either a keyword indicating the sky is clear or
+                // a list of cloud layers, but it's always a single element.
+                let cloud_pair = pair.into_inner().next().unwrap();
+
+                match cloud_pair.as_rule() {
+                    Rule::clouds_clr => clouds = Some(Clouds::Clear),
+                    Rule::cloud_layers => {
+                        let mut layers = Vec::new();
+
+                        for layer in cloud_pair.into_inner() {
+                            let mut layer_pairs = layer.into_inner();
+
+                            let layer_name = layer_pairs.next().unwrap().as_str();
+                            let layer_height = layer_pairs.next().unwrap().as_str();
+
+                            // The grammar constrains the names and heights to
+                            // parseable values, so we can `unwrap` here.
+                            layers.push(metar::CloudLayer {
+                                kind: layer_name.parse().unwrap(),
+                                // Cloud heights specified in hundreds.
+                                agl: layer_height.parse::<u16>().unwrap() * 100,
+                            });
+                        }
+
+                        clouds = Some(Clouds::Layers(layers));
+                    }
+                    _ => unreachable!(),
+                }
+            }
             Rule::temp_dew => {
                 let mut pairs = pair.into_inner();
 

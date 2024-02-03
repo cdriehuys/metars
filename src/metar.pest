@@ -12,8 +12,12 @@ wind_speed = { ASCII_DIGIT{2} }
 visibility = ${ visibility_distance ~ "SM" }
 visibility_distance = @{ ASCII_DIGIT+ ~ ("/" ~ ASCII_DIGIT+)? }
 
-clouds = { clouds_clr }
+clouds = { clouds_clr | cloud_layers }
 clouds_clr = { "CLR" }
+cloud_layers = { cloud_layer+ }
+cloud_layer = ${ cloud_type ~ cloud_height }
+cloud_type = { "BKN" | "FEW" | "OVC" | "SCT" }
+cloud_height = { ASCII_DIGIT{3} }
 
 temp_dew = ${ temp_measurement ~ "/" ~ temp_measurement }
 temp_measurement = @{ "M"? ~ ASCII_DIGIT{2} }

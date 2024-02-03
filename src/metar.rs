@@ -61,6 +61,41 @@ impl FromStr for Visibility {
 pub enum Clouds {
     /// No reported clouds.
     Clear,
+
+    /// A vector of cloud layers in the reported order.
+    Layers(Vec<CloudLayer>),
+}
+
+/// A single layer of clouds.
+#[derive(Debug, PartialEq)]
+pub struct CloudLayer {
+    /// The type of cloud layer reported.
+    pub kind: CloudKind,
+    /// The height of the layer above the ground.
+    pub agl: u16,
+}
+
+/// A type of cloud layer.
+#[derive(Debug, PartialEq)]
+pub enum CloudKind {
+    Few,
+    Scattered,
+    Broken,
+    Overcast,
+}
+
+impl FromStr for CloudKind {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "BKN" => Ok(Self::Broken),
+            "FEW" => Ok(Self::Few),
+            "OVC" => Ok(Self::Overcast),
+            "SCT" => Ok(Self::Scattered),
+            _ => Err(()),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -89,5 +124,23 @@ mod test {
         let parsed: Visibility = visibility.parse().expect("parseable");
 
         assert_eq!(Visibility::SM(0.5), parsed);
+    }
+
+    #[test]
+    fn cloud_kind_from_str() {
+        let cases = vec![
+            ("BKN", Some(CloudKind::Broken)),
+            ("FEW", Some(CloudKind::Few)),
+            ("OVC", Some(CloudKind::Overcast)),
+            ("SCT", Some(CloudKind::Scattered)),
+            ("UNKNOWN", None),
+        ];
+        for (name, expected) in cases {
+            if let Some(want_value) = expected {
+                assert_eq!(want_value, name.parse::<CloudKind>().expect("should parse"));
+            } else {
+                name.parse::<CloudKind>().expect_err("Should not be found.");
+            }
+        }
     }
 }
