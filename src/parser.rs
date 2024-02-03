@@ -1,3 +1,5 @@
+use std::{error::Error, num::ParseFloatError};
+
 use pest::Parser;
 use pest_derive::Parser;
 
@@ -11,11 +13,18 @@ pub struct MetarParser;
 pub enum ParseError {
     MissingElement(String),
     MalformedInput(pest::error::Error<Rule>),
+    Unknown(Box<dyn Error>),
 }
 
 impl From<pest::error::Error<Rule>> for ParseError {
     fn from(value: pest::error::Error<Rule>) -> Self {
         Self::MalformedInput(value)
+    }
+}
+
+impl From<ParseFloatError> for ParseError {
+    fn from(value: ParseFloatError) -> Self {
+        Self::Unknown(Box::new(value))
     }
 }
 
@@ -51,12 +60,7 @@ pub fn parse_metar(metar: &str) -> Result<Metar, ParseError> {
                     speed: raw_speed.parse().unwrap(),
                 });
             }
-            Rule::visibility => {
-                let mut pairs = pair.into_inner();
-                let raw_distance = pairs.next().unwrap().as_str();
-
-                visibility = Some(metar::Visibility::SM(raw_distance.parse().unwrap()))
-            }
+            Rule::visibility => visibility = Some(pair.as_str().parse()?),
             _ => unreachable!(),
         }
     }

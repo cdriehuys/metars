@@ -10,7 +10,7 @@ wind = ${ direction ~ wind_speed ~ "KT" }
 wind_speed = { ASCII_DIGIT{2} }
 
 visibility = ${ visibility_distance ~ "SM" }
-visibility_distance = { ASCII_DIGIT+ }
+visibility_distance = @{ ASCII_DIGIT+ ~ ("/" ~ ASCII_DIGIT+)? }
 
 // Compass direction given as 3 digits.
 direction = { ASCII_DIGIT{3} }
