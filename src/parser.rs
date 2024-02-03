@@ -1,6 +1,6 @@
 use std::{error::Error, num::ParseFloatError};
 
-use pest::Parser;
+use pest::{iterators::Pair, Parser};
 use pest_derive::Parser;
 
 use crate::{metar, Metar};
@@ -37,6 +37,8 @@ pub fn parse_metar(metar: &str) -> Result<Metar, ParseError> {
     let mut wind = None;
     let mut visibility = None;
     let mut clouds = None;
+    let mut temp = None;
+    let mut dewpoint = None;
 
     for pair in parsed.into_inner() {
         match pair.as_rule() {
@@ -63,6 +65,13 @@ pub fn parse_metar(metar: &str) -> Result<Metar, ParseError> {
             }
             Rule::visibility => visibility = Some(pair.as_str().parse()?),
             Rule::clouds => clouds = Some(metar::Clouds::Clear),
+            Rule::temp_dew => {
+                let mut pairs = pair.into_inner();
+
+                // Temperature and dewpoint always reported together.
+                temp = parse_int_temp(pairs.next().unwrap());
+                dewpoint = parse_int_temp(pairs.next().unwrap());
+            }
             _ => unreachable!(),
         }
     }
@@ -76,5 +85,23 @@ pub fn parse_metar(metar: &str) -> Result<Metar, ParseError> {
         visibility: visibility
             .ok_or_else(|| ParseError::MissingElement("Visibility".to_owned()))?,
         clouds: clouds.unwrap_or(metar::Clouds::Clear),
+        temp: temp.ok_or_else(|| ParseError::MissingElement("Temperature".to_owned()))?,
+        dewpoint: dewpoint.ok_or_else(|| ParseError::MissingElement("Dewpoint".to_owned()))?,
     })
+}
+
+fn parse_int_temp<'a>(pair: Pair<'a, Rule>) -> Option<i8> {
+    match pair.as_rule() {
+        Rule::temp_measurement => {
+            let raw = pair.as_str();
+            if raw.starts_with("M") {
+                let parsed = raw[1..].parse::<i8>().ok();
+
+                parsed.map(|value| -value)
+            } else {
+                raw.parse().ok()
+            }
+        }
+        _ => None,
+    }
 }

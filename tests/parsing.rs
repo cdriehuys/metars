@@ -19,6 +19,8 @@ fn basic_metar() {
         },
         visibility: metar::Visibility::SM(10.0),
         clouds: metar::Clouds::Clear,
+        temp: 7,
+        dewpoint: -2,
     };
 
     let received: Metar = raw.parse().expect("should be parseable");
