@@ -1,7 +1,7 @@
 use pest::Parser;
 use pest_derive::Parser;
 
-use crate::Metar;
+use crate::{Metar, Wind};
 
 #[derive(Parser)]
 #[grammar = "metar.pest"]
@@ -27,19 +27,28 @@ pub fn parse_metar(metar: &str) -> Result<Metar, ParseError> {
     let mut automated_report = false;
     let mut wind = None;
 
-    for record in parsed.into_inner() {
-        match record.as_rule() {
+    for pair in parsed.into_inner() {
+        match pair.as_rule() {
             Rule::station => {
-                station = Some(record.as_str().to_owned());
+                station = Some(pair.as_str().to_owned());
             }
             Rule::observation_time => {
-                observation_time = Some(record.as_str().to_owned());
+                observation_time = Some(pair.as_str().to_owned());
             }
             Rule::auto_kw => {
                 automated_report = true;
             }
             Rule::wind => {
-                wind = Some(record.as_str().to_owned());
+                // Wind is defined as a direction followed by a speed.
+                let mut pairs = pair.into_inner();
+
+                let raw_direction = pairs.next().unwrap().as_str();
+                let raw_speed = pairs.next().unwrap().as_str();
+
+                wind = Some(Wind {
+                    direction: raw_direction.parse().unwrap(),
+                    speed: raw_speed.parse().unwrap(),
+                });
             }
             _ => unreachable!(),
         }

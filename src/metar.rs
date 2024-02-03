@@ -7,7 +7,7 @@ pub struct Metar {
     pub station: String,
     pub observation_time: String,
     pub automated_report: bool,
-    pub wind: String,
+    pub wind: Wind,
 }
 
 impl FromStr for Metar {
@@ -16,4 +16,14 @@ impl FromStr for Metar {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         parse_metar(s)
     }
+}
+
+/// Wind speed and direction.
+#[derive(Debug, PartialEq)]
+pub struct Wind {
+    /// True wind direction.
+    pub direction: u16,
+
+    /// Wind speed in knots.
+    pub speed: u8,
 }

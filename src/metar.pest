@@ -6,7 +6,8 @@ observation_time = { ASCII_DIGIT{6} ~ "Z" }
 auto_kw = { "AUTO" }
 
 // Mark wind as "compound atomic" rule to prohibit whitespace between elements.
-wind = ${ direction ~ ASCII_DIGIT{2} ~ "KT" }
+wind = ${ direction ~ wind_speed ~ "KT" }
+wind_speed = { ASCII_DIGIT{2} }
 
 // Compass direction given as 3 digits.
 direction = { ASCII_DIGIT{3} }
