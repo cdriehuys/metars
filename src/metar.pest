@@ -1,3 +1,6 @@
-METAR = { station }
+METAR = { station ~ observation_time }
 
 station = { (ASCII_ALPHA_UPPER | ASCII_DIGIT){4} }
+observation_time = { ASCII_DIGIT{6} ~ "Z" }
+
+WHITESPACE = _{ " " }
