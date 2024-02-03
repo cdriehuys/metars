@@ -21,6 +21,7 @@ impl From<pest::error::Error<Rule>> for ParseError {
 pub struct Metar {
     pub station: String,
     pub observation_time: String,
+    pub automated_report: bool,
 }
 
 impl FromStr for Metar {
@@ -31,6 +32,8 @@ impl FromStr for Metar {
 
         let mut station = None;
         let mut observation_time = None;
+        let mut automated_report = false;
+
         for record in parsed.into_inner() {
             match record.as_rule() {
                 Rule::station => {
@@ -38,6 +41,9 @@ impl FromStr for Metar {
                 }
                 Rule::observation_time => {
                     observation_time = Some(record.as_str().to_owned());
+                }
+                Rule::auto_kw => {
+                    automated_report = true;
                 }
                 _ => unreachable!(),
             }
@@ -48,6 +54,7 @@ impl FromStr for Metar {
                 .ok_or_else(|| ParseError::MissingElement("Station name".to_owned()))?,
             observation_time: observation_time
                 .ok_or_else(|| ParseError::MissingElement("Observation time".to_owned()))?,
+            automated_report,
         })
     }
 }
@@ -62,6 +69,7 @@ mod tests {
         let expected = Metar {
             station: "KTTA".to_owned(),
             observation_time: "031530Z".to_owned(),
+            automated_report: true,
         };
 
         let received: Metar = raw.parse().expect("should be parseable");
