@@ -12,6 +12,7 @@ pub struct Metar {
     pub clouds: Clouds,
     pub temp: i8,
     pub dewpoint: i8,
+    pub altimeter: u16,
 }
 
 impl FromStr for Metar {

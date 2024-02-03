@@ -42,6 +42,7 @@ pub fn parse_metar(metar: &str) -> Result<Metar, ParseError> {
     let mut clouds = None;
     let mut temp = None;
     let mut dewpoint = None;
+    let mut altimeter = None;
 
     for pair in parsed.into_inner() {
         match pair.as_rule() {
@@ -104,6 +105,12 @@ pub fn parse_metar(metar: &str) -> Result<Metar, ParseError> {
                 temp = parse_int_temp(pairs.next().unwrap());
                 dewpoint = parse_int_temp(pairs.next().unwrap());
             }
+            Rule::altimeter => {
+                // Since the grammar constrains us to a 4 digit number with an
+                // 'A' prefix, we can unwrap the results here.
+                let numeric = pair.as_str().strip_prefix('A').unwrap();
+                altimeter = Some(numeric.parse().unwrap());
+            }
             _ => unreachable!(),
         }
     }
@@ -119,6 +126,7 @@ pub fn parse_metar(metar: &str) -> Result<Metar, ParseError> {
         clouds: clouds.unwrap_or(metar::Clouds::Clear),
         temp: temp.ok_or_else(|| ParseError::MissingElement("Temperature".to_owned()))?,
         dewpoint: dewpoint.ok_or_else(|| ParseError::MissingElement("Dewpoint".to_owned()))?,
+        altimeter: altimeter.ok_or_else(|| ParseError::MissingElement("Altimeter".to_owned()))?,
     })
 }
 

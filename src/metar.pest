@@ -1,4 +1,4 @@
-METAR = { station ~ observation_time ~ auto_kw? ~ wind ~ visibility ~ clouds ~ temp_dew }
+METAR = { station ~ observation_time ~ auto_kw? ~ wind ~ visibility ~ clouds ~ temp_dew ~ altimeter }
 
 station = { (ASCII_ALPHA_UPPER | ASCII_DIGIT){4} }
 observation_time = { ASCII_DIGIT{6} ~ "Z" }
@@ -21,6 +21,8 @@ cloud_height = { ASCII_DIGIT{3} }
 
 temp_dew = ${ temp_measurement ~ "/" ~ temp_measurement }
 temp_measurement = @{ "M"? ~ ASCII_DIGIT{2} }
+
+altimeter = ${ "A" ~ ASCII_DIGIT{4} }
 
 // Compass direction given as 3 digits.
 direction = { ASCII_DIGIT{3} }

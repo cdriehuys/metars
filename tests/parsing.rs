@@ -8,7 +8,7 @@ fn parse_metar(metar: &str) -> Metar {
 
 #[test]
 fn basic_metar() {
-    let raw = "KTTA 031530Z AUTO 04008KT 10SM CLR 07/M02";
+    let raw = "KTTA 031530Z AUTO 04008KT 10SM CLR 07/M02 A3001";
     let expected = Metar {
         station: "KTTA".to_owned(),
         observation_time: "031530Z".to_owned(),
@@ -21,6 +21,7 @@ fn basic_metar() {
         clouds: metar::Clouds::Clear,
         temp: 7,
         dewpoint: -2,
+        altimeter: 3001,
     };
 
     let received: Metar = raw.parse().expect("should be parseable");
@@ -31,7 +32,7 @@ fn basic_metar() {
 
 #[test]
 fn fractional_visibility() {
-    let parsed = parse_metar("KTTA 031530Z AUTO 04008KT 1/2SM CLR 07/M02");
+    let parsed = parse_metar("KTTA 031530Z AUTO 04008KT 1/2SM CLR 07/M02 A3001");
 
     assert_eq!(metar::Visibility::SM(0.5), parsed.visibility);
 }
