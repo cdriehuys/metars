@@ -1,5 +1,11 @@
 use metars::{metar, Metar};
 
+/// Test utility to parse a METAR that should be parseable, panicking if it
+/// cannot be parsed.
+fn parse_metar(metar: &str) -> Metar {
+    metar.parse().expect("should be parseable")
+}
+
 #[test]
 fn basic_metar() {
     let raw = "KTTA 031530Z AUTO 04008KT 10SM CLR 07/M02";
@@ -12,6 +18,7 @@ fn basic_metar() {
             speed: 8,
         },
         visibility: metar::Visibility::SM(10.0),
+        clouds: metar::Clouds::Clear,
     };
 
     let received: Metar = raw.parse().expect("should be parseable");
@@ -22,8 +29,7 @@ fn basic_metar() {
 
 #[test]
 fn fractional_visibility() {
-    let raw = "KTTA 031530Z AUTO 04008KT 1/2SM CLR 07/M02";
-    let received: Metar = raw.parse().expect("should be parseable");
+    let metar = parse_metar("KTTA 031530Z AUTO 04008KT 1/2SM CLR 07/M02");
 
-    assert_eq!(metar::Visibility::SM(0.5), received.visibility);
+    assert_eq!(metar::Visibility::SM(0.5), metar.visibility);
 }

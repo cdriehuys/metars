@@ -9,6 +9,7 @@ pub struct Metar {
     pub automated_report: bool,
     pub wind: Wind,
     pub visibility: Visibility,
+    pub clouds: Clouds,
 }
 
 impl FromStr for Metar {
@@ -51,6 +52,13 @@ impl FromStr for Visibility {
             Ok(Self::SM(raw_distance.parse()?))
         }
     }
+}
+
+/// Reported cloud layers.
+#[derive(Debug, PartialEq)]
+pub enum Clouds {
+    /// No reported clouds.
+    Clear,
 }
 
 #[cfg(test)]

@@ -1,4 +1,4 @@
-METAR = { station ~ observation_time ~ auto_kw? ~ wind ~ visibility }
+METAR = { station ~ observation_time ~ auto_kw? ~ wind ~ visibility ~ clouds }
 
 station = { (ASCII_ALPHA_UPPER | ASCII_DIGIT){4} }
 observation_time = { ASCII_DIGIT{6} ~ "Z" }
@@ -11,6 +11,9 @@ wind_speed = { ASCII_DIGIT{2} }
 
 visibility = ${ visibility_distance ~ "SM" }
 visibility_distance = @{ ASCII_DIGIT+ ~ ("/" ~ ASCII_DIGIT+)? }
+
+clouds = { clouds_clr }
+clouds_clr = { "CLR" }
 
 // Compass direction given as 3 digits.
 direction = { ASCII_DIGIT{3} }

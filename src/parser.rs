@@ -36,6 +36,7 @@ pub fn parse_metar(metar: &str) -> Result<Metar, ParseError> {
     let mut automated_report = false;
     let mut wind = None;
     let mut visibility = None;
+    let mut clouds = None;
 
     for pair in parsed.into_inner() {
         match pair.as_rule() {
@@ -61,6 +62,7 @@ pub fn parse_metar(metar: &str) -> Result<Metar, ParseError> {
                 });
             }
             Rule::visibility => visibility = Some(pair.as_str().parse()?),
+            Rule::clouds => clouds = Some(metar::Clouds::Clear),
             _ => unreachable!(),
         }
     }
@@ -73,5 +75,6 @@ pub fn parse_metar(metar: &str) -> Result<Metar, ParseError> {
         wind: wind.ok_or_else(|| ParseError::MissingElement("Wind".to_owned()))?,
         visibility: visibility
             .ok_or_else(|| ParseError::MissingElement("Visibility".to_owned()))?,
+        clouds: clouds.unwrap_or(metar::Clouds::Clear),
     })
 }
