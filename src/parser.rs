@@ -15,13 +15,13 @@ pub struct MetarParser;
 #[derive(Debug)]
 pub enum ParseError {
     MissingElement(String),
-    MalformedInput(pest::error::Error<Rule>),
+    MalformedInput(Box<pest::error::Error<Rule>>),
     Unknown(Box<dyn Error>),
 }
 
 impl From<pest::error::Error<Rule>> for ParseError {
     fn from(value: pest::error::Error<Rule>) -> Self {
-        Self::MalformedInput(value)
+        Self::MalformedInput(Box::new(value))
     }
 }
 
@@ -130,12 +130,12 @@ pub fn parse_metar(metar: &str) -> Result<Metar, ParseError> {
     })
 }
 
-fn parse_int_temp<'a>(pair: Pair<'a, Rule>) -> Option<i8> {
+fn parse_int_temp(pair: Pair<Rule>) -> Option<i8> {
     match pair.as_rule() {
         Rule::temp_measurement => {
             let raw = pair.as_str();
-            if raw.starts_with("M") {
-                let parsed = raw[1..].parse::<i8>().ok();
+            if let Some(negative_value) = raw.strip_prefix('M') {
+                let parsed = negative_value.parse::<i8>().ok();
 
                 parsed.map(|value| -value)
             } else {

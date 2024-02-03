@@ -46,7 +46,7 @@ impl FromStr for Visibility {
         // All distance units are 2 characters.
         let raw_distance = &s[..s.len() - 2];
 
-        if let Some((raw_numerator, raw_denominator)) = raw_distance.split_once("/") {
+        if let Some((raw_numerator, raw_denominator)) = raw_distance.split_once('/') {
             let numerator: f32 = raw_numerator.parse()?;
             let denominator: f32 = raw_denominator.parse()?;
 
