@@ -1,0 +1,3 @@
+METAR = { station }
+
+station = { (ASCII_ALPHA_UPPER | ASCII_DIGIT){4} }
