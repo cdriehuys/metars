@@ -161,23 +161,7 @@ pub fn parse_metar(metar: &str) -> Result<Metar, ParseError> {
                 match cloud_pair.as_rule() {
                     Rule::clouds_clr => builder.set_clouds(Clouds::Clear),
                     Rule::cloud_layers => {
-                        let mut layers = Vec::new();
-
-                        for layer in cloud_pair.into_inner() {
-                            let mut layer_pairs = layer.into_inner();
-
-                            let layer_name = layer_pairs.next().unwrap().as_str();
-                            let layer_height = layer_pairs.next().unwrap().as_str();
-
-                            // The grammar constrains the names and heights to
-                            // parseable values, so we can `unwrap` here.
-                            layers.push(CloudLayer {
-                                kind: layer_name.parse().unwrap(),
-                                // Cloud heights specified in hundreds.
-                                agl: layer_height.parse::<u16>().unwrap() * 100,
-                            });
-                        }
-
+                        let layers = parse_cloud_layers(cloud_pair);
                         builder.set_clouds(Clouds::Layers(layers));
                     }
                     _ => unreachable!(),
@@ -197,24 +181,50 @@ pub fn parse_metar(metar: &str) -> Result<Metar, ParseError> {
                 builder.set_altimeter(numeric.parse().unwrap());
             }
             Rule::remarks => {
-                let mut station_type = None;
-
-                for remark in pair.into_inner() {
-                    match remark.as_rule() {
-                        Rule::remark_station_type => {
-                            station_type = Some(remark.as_str().to_owned())
-                        }
-                        _ => unreachable!("Unknown pair: {:?}", remark),
-                    }
-                }
-
-                builder.set_remarks(Remarks { station_type })
+                let remarks = parse_remarks(pair);
+                builder.set_remarks(remarks);
             }
             _ => unreachable!(),
         }
     }
 
     builder.build()
+}
+
+/// Parse a pair containing one or more cloud layer definitions.
+fn parse_cloud_layers(pair: Pair<Rule>) -> Vec<CloudLayer> {
+    let mut layers = Vec::new();
+
+    for layer in pair.into_inner() {
+        let mut layer_pairs = layer.into_inner();
+
+        let layer_name = layer_pairs.next().unwrap().as_str();
+        let layer_height = layer_pairs.next().unwrap().as_str();
+
+        // The grammar constrains the names and heights to
+        // parseable values, so we can `unwrap` here.
+        layers.push(CloudLayer {
+            kind: layer_name.parse().unwrap(),
+            // Cloud heights specified in hundreds.
+            agl: layer_height.parse::<u16>().unwrap() * 100,
+        });
+    }
+
+    layers
+}
+
+/// Parse the remarks section of a METAR.
+fn parse_remarks(pair: Pair<Rule>) -> Remarks {
+    let mut remarks = Remarks::default();
+
+    for remark in pair.into_inner() {
+        match remark.as_rule() {
+            Rule::remark_station_type => remarks.station_type = Some(remark.as_str().to_owned()),
+            _ => unreachable!("Unknown remark: {:?}", remark),
+        }
+    }
+
+    remarks
 }
 
 fn parse_int_temp(pair: Pair<Rule>) -> Option<i8> {
