@@ -4,7 +4,7 @@ use pest::{iterators::Pair, Parser};
 use pest_derive::Parser;
 
 use crate::{
-    metar::{CloudLayer, Clouds, Remarks, Visibility, Wind},
+    metar::{CloudLayer, Clouds, Remarks, TempBreakdown, Visibility, Wind},
     Metar,
 };
 
@@ -220,6 +220,17 @@ fn parse_remarks(pair: Pair<Rule>) -> Remarks {
     for remark in pair.into_inner() {
         match remark.as_rule() {
             Rule::remark_station_type => remarks.station_type = Some(remark.as_str().to_owned()),
+            Rule::remark_temp_breakdown => {
+                let mut temp_pairs = remark.into_inner();
+
+                let raw_temp = temp_pairs.next().unwrap().as_str();
+                let raw_dewpoint = temp_pairs.next().unwrap().as_str();
+
+                remarks.temp_breakdown = Some(TempBreakdown {
+                    temp: parse_tenths_temp(raw_temp),
+                    dewpoint: parse_tenths_temp(raw_dewpoint),
+                });
+            }
             _ => unreachable!("Unknown remark: {:?}", remark),
         }
     }
@@ -240,5 +251,13 @@ fn parse_int_temp(pair: Pair<Rule>) -> Option<i8> {
             }
         }
         _ => None,
+    }
+}
+
+fn parse_tenths_temp(raw: &str) -> f32 {
+    if let Some(negative_value) = raw.strip_prefix('1') {
+        negative_value.parse::<f32>().unwrap() / -10.0
+    } else {
+        raw.parse::<f32>().unwrap() / 10.0
     }
 }

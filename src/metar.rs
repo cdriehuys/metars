@@ -105,6 +105,13 @@ impl FromStr for CloudKind {
 #[derive(Debug, Default, PartialEq)]
 pub struct Remarks {
     pub station_type: Option<String>,
+    pub temp_breakdown: Option<TempBreakdown>,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct TempBreakdown {
+    pub temp: f32,
+    pub dewpoint: f32,
 }
 
 #[cfg(test)]
