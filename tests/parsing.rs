@@ -22,6 +22,7 @@ fn basic_metar() {
         temp: 7,
         dewpoint: -2,
         altimeter: 3001,
+        remarks: None,
     };
 
     let received: Metar = raw.parse().expect("should be parseable");
@@ -82,4 +83,18 @@ fn clouds_all() {
     ]);
 
     assert_eq!(want_clouds, parsed.clouds);
+}
+
+#[test]
+fn remark_station_type_ao1() {
+    let parsed = parse_metar("KEWR 031951Z 01012KT 10SM CLR 08/M06 A3002 RMK AO1");
+
+    assert_eq!(Some("AO1".to_owned()), parsed.remarks.unwrap().station_type);
+}
+
+#[test]
+fn remark_station_type_ao2() {
+    let parsed = parse_metar("KEWR 031951Z 01012KT 10SM CLR 08/M06 A3002 RMK AO2");
+
+    assert_eq!(Some("AO2".to_owned()), parsed.remarks.unwrap().station_type);
 }
