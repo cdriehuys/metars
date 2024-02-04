@@ -16,6 +16,7 @@ fn basic_metar() {
         wind: metar::Wind {
             direction: 40,
             speed: 8,
+            gust_speed: None,
         },
         visibility: metar::Visibility::SM(10.0),
         clouds: metar::Clouds::Clear,
@@ -29,6 +30,13 @@ fn basic_metar() {
     println!("{:?}", received);
 
     assert_eq!(expected, received);
+}
+
+#[test]
+fn winds_gusting() {
+    let parsed = parse_metar("KBOS 031954Z 03006G19KT 10SM CLR 11/M03 A3005");
+
+    assert_eq!(19, parsed.wind.gust_speed.unwrap());
 }
 
 #[test]

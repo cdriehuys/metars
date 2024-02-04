@@ -30,9 +30,10 @@ impl FromStr for Metar {
 pub struct Wind {
     /// True wind direction.
     pub direction: u16,
-
     /// Wind speed in knots.
     pub speed: u8,
+    /// Highest gust speed in knots.
+    pub gust_speed: Option<u8>,
 }
 
 #[derive(Debug, PartialEq)]
