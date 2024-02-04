@@ -13,6 +13,8 @@ pub struct Metar {
     pub temp: i8,
     pub dewpoint: i8,
     pub altimeter: u16,
+
+    pub remarks: Option<Remarks>,
 }
 
 impl FromStr for Metar {
@@ -97,6 +99,11 @@ impl FromStr for CloudKind {
             _ => Err(()),
         }
     }
+}
+
+#[derive(Debug, Default, PartialEq)]
+pub struct Remarks {
+    pub station_type: Option<String>,
 }
 
 #[cfg(test)]

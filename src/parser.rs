@@ -4,7 +4,7 @@ use pest::{iterators::Pair, Parser};
 use pest_derive::Parser;
 
 use crate::{
-    metar::{self, Clouds},
+    metar::{self, Clouds, Remarks},
     Metar,
 };
 
@@ -43,6 +43,7 @@ pub fn parse_metar(metar: &str) -> Result<Metar, ParseError> {
     let mut temp = None;
     let mut dewpoint = None;
     let mut altimeter = None;
+    let mut remarks = None;
 
     for pair in parsed.into_inner() {
         match pair.as_rule() {
@@ -111,6 +112,20 @@ pub fn parse_metar(metar: &str) -> Result<Metar, ParseError> {
                 let numeric = pair.as_str().strip_prefix('A').unwrap();
                 altimeter = Some(numeric.parse().unwrap());
             }
+            Rule::remarks => {
+                let mut station_type = None;
+
+                for remark in pair.into_inner() {
+                    match remark.as_rule() {
+                        Rule::remark_station_type => {
+                            station_type = Some(remark.as_str().to_owned())
+                        }
+                        _ => unreachable!("Unknown pair: {:?}", remark),
+                    }
+                }
+
+                remarks = Some(Remarks { station_type })
+            }
             _ => unreachable!(),
         }
     }
@@ -127,6 +142,7 @@ pub fn parse_metar(metar: &str) -> Result<Metar, ParseError> {
         temp: temp.ok_or_else(|| ParseError::MissingElement("Temperature".to_owned()))?,
         dewpoint: dewpoint.ok_or_else(|| ParseError::MissingElement("Dewpoint".to_owned()))?,
         altimeter: altimeter.ok_or_else(|| ParseError::MissingElement("Altimeter".to_owned()))?,
+        remarks,
     })
 }
 
