@@ -4,7 +4,7 @@ use pest::{iterators::Pair, Parser};
 use pest_derive::Parser;
 
 use crate::{
-    metar::{self, Clouds, Remarks},
+    metar::{CloudLayer, Clouds, Remarks, Visibility, Wind},
     Metar,
 };
 
@@ -31,30 +31,103 @@ impl From<ParseFloatError> for ParseError {
     }
 }
 
+/// Builder for constructing a METAR over time.
+///
+/// Because a METAR has a set of required elements, we need some way of
+/// collecting all the parsed values until we have all the information needed to
+/// construct the final object.
+#[derive(Default)]
+struct MetarBuilder {
+    station: Option<String>,
+    observation_time: Option<String>,
+    automated_report: bool,
+    wind: Option<Wind>,
+    visibility: Option<Visibility>,
+    clouds: Option<Clouds>,
+    temp: Option<i8>,
+    dewpoint: Option<i8>,
+    altimeter: Option<u16>,
+    remarks: Option<Remarks>,
+}
+
+impl MetarBuilder {
+    fn set_station(&mut self, station: String) {
+        self.station = Some(station);
+    }
+
+    fn set_observation_time(&mut self, observation_time: String) {
+        self.observation_time = Some(observation_time);
+    }
+
+    fn set_automated_report(&mut self, automated_report: bool) {
+        self.automated_report = automated_report;
+    }
+
+    fn set_wind(&mut self, wind: Wind) {
+        self.wind = Some(wind);
+    }
+
+    fn set_visibility(&mut self, visibility: Visibility) {
+        self.visibility = Some(visibility);
+    }
+
+    fn set_clouds(&mut self, clouds: Clouds) {
+        self.clouds = Some(clouds);
+    }
+
+    fn set_temp(&mut self, temp: i8) {
+        self.temp = Some(temp);
+    }
+
+    fn set_dewpoint(&mut self, dewpoint: i8) {
+        self.dewpoint = Some(dewpoint);
+    }
+
+    fn set_altimeter(&mut self, altimeter: u16) {
+        self.altimeter = Some(altimeter);
+    }
+
+    fn set_remarks(&mut self, remarks: Remarks) {
+        self.remarks = Some(remarks);
+    }
+
+    fn build(self) -> Result<Metar, ParseError> {
+        Ok(Metar {
+            station: Self::required(self.station, "Station Name")?,
+            observation_time: Self::required(self.observation_time, "Observation Time")?,
+            automated_report: self.automated_report,
+            wind: Self::required(self.wind, "Wind")?,
+            visibility: Self::required(self.visibility, "Visibility")?,
+            clouds: self.clouds.unwrap_or(Clouds::Clear),
+            temp: Self::required(self.temp, "Temperature")?,
+            dewpoint: Self::required(self.dewpoint, "Dewpoint")?,
+            altimeter: Self::required(self.altimeter, "Altimeter")?,
+            remarks: self.remarks,
+        })
+    }
+
+    /// Require an optional attribute of the builder to be set, and return a
+    /// [`ParseError`] if it isn't.
+    fn required<T>(param: Option<T>, name: &str) -> Result<T, ParseError> {
+        param.ok_or_else(|| ParseError::MissingElement(name.to_owned()))
+    }
+}
+
 pub fn parse_metar(metar: &str) -> Result<Metar, ParseError> {
     let parsed = MetarParser::parse(Rule::METAR, metar)?.next().unwrap();
 
-    let mut station = None;
-    let mut observation_time = None;
-    let mut automated_report = false;
-    let mut wind = None;
-    let mut visibility = None;
-    let mut clouds = None;
-    let mut temp = None;
-    let mut dewpoint = None;
-    let mut altimeter = None;
-    let mut remarks = None;
+    let mut builder = MetarBuilder::default();
 
     for pair in parsed.into_inner() {
         match pair.as_rule() {
             Rule::station => {
-                station = Some(pair.as_str().to_owned());
+                builder.set_station(pair.as_str().to_owned());
             }
             Rule::observation_time => {
-                observation_time = Some(pair.as_str().to_owned());
+                builder.set_observation_time(pair.as_str().to_owned());
             }
             Rule::auto_kw => {
-                automated_report = true;
+                builder.set_automated_report(true);
             }
             Rule::wind => {
                 // Wind is defined as a direction followed by a speed.
@@ -73,20 +146,20 @@ pub fn parse_metar(metar: &str) -> Result<Metar, ParseError> {
                         .unwrap()
                 });
 
-                wind = Some(metar::Wind {
+                builder.set_wind(Wind {
                     direction: raw_direction.parse().unwrap(),
                     speed: raw_speed.parse().unwrap(),
                     gust_speed,
                 });
             }
-            Rule::visibility => visibility = Some(pair.as_str().parse()?),
+            Rule::visibility => builder.set_visibility(pair.as_str().parse()?),
             Rule::clouds => {
                 // Clouds are either a keyword indicating the sky is clear or
                 // a list of cloud layers, but it's always a single element.
                 let cloud_pair = pair.into_inner().next().unwrap();
 
                 match cloud_pair.as_rule() {
-                    Rule::clouds_clr => clouds = Some(Clouds::Clear),
+                    Rule::clouds_clr => builder.set_clouds(Clouds::Clear),
                     Rule::cloud_layers => {
                         let mut layers = Vec::new();
 
@@ -98,14 +171,14 @@ pub fn parse_metar(metar: &str) -> Result<Metar, ParseError> {
 
                             // The grammar constrains the names and heights to
                             // parseable values, so we can `unwrap` here.
-                            layers.push(metar::CloudLayer {
+                            layers.push(CloudLayer {
                                 kind: layer_name.parse().unwrap(),
                                 // Cloud heights specified in hundreds.
                                 agl: layer_height.parse::<u16>().unwrap() * 100,
                             });
                         }
 
-                        clouds = Some(Clouds::Layers(layers));
+                        builder.set_clouds(Clouds::Layers(layers));
                     }
                     _ => unreachable!(),
                 }
@@ -114,14 +187,14 @@ pub fn parse_metar(metar: &str) -> Result<Metar, ParseError> {
                 let mut pairs = pair.into_inner();
 
                 // Temperature and dewpoint always reported together.
-                temp = parse_int_temp(pairs.next().unwrap());
-                dewpoint = parse_int_temp(pairs.next().unwrap());
+                builder.set_temp(parse_int_temp(pairs.next().unwrap()).unwrap());
+                builder.set_dewpoint(parse_int_temp(pairs.next().unwrap()).unwrap());
             }
             Rule::altimeter => {
                 // Since the grammar constrains us to a 4 digit number with an
                 // 'A' prefix, we can unwrap the results here.
                 let numeric = pair.as_str().strip_prefix('A').unwrap();
-                altimeter = Some(numeric.parse().unwrap());
+                builder.set_altimeter(numeric.parse().unwrap());
             }
             Rule::remarks => {
                 let mut station_type = None;
@@ -135,26 +208,13 @@ pub fn parse_metar(metar: &str) -> Result<Metar, ParseError> {
                     }
                 }
 
-                remarks = Some(Remarks { station_type })
+                builder.set_remarks(Remarks { station_type })
             }
             _ => unreachable!(),
         }
     }
 
-    Ok(Metar {
-        station: station.ok_or_else(|| ParseError::MissingElement("Station name".to_owned()))?,
-        observation_time: observation_time
-            .ok_or_else(|| ParseError::MissingElement("Observation time".to_owned()))?,
-        automated_report,
-        wind: wind.ok_or_else(|| ParseError::MissingElement("Wind".to_owned()))?,
-        visibility: visibility
-            .ok_or_else(|| ParseError::MissingElement("Visibility".to_owned()))?,
-        clouds: clouds.unwrap_or(metar::Clouds::Clear),
-        temp: temp.ok_or_else(|| ParseError::MissingElement("Temperature".to_owned()))?,
-        dewpoint: dewpoint.ok_or_else(|| ParseError::MissingElement("Dewpoint".to_owned()))?,
-        altimeter: altimeter.ok_or_else(|| ParseError::MissingElement("Altimeter".to_owned()))?,
-        remarks,
-    })
+    builder.build()
 }
 
 fn parse_int_temp(pair: Pair<Rule>) -> Option<i8> {
