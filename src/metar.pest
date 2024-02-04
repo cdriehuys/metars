@@ -27,8 +27,12 @@ altimeter = ${ "A" ~ ASCII_DIGIT{4} }
 
 remarks = { remarks_kw ~ remark* }
 remarks_kw = _{ "RMK" }
-remark = _{ remark_station_type }
+remark = _{ remark_station_type | remark_temp_breakdown }
+
 remark_station_type = { "AO1" | "AO2" }
+
+remark_temp_breakdown = ${ "T" ~ breakdown_temp{2} }
+breakdown_temp = @{ ("1" | "0") ~ ASCII_DIGIT{3} }
 
 // Compass direction given as 3 digits.
 direction = { ASCII_DIGIT{3} }

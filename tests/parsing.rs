@@ -106,3 +106,33 @@ fn remark_station_type_ao2() {
 
     assert_eq!(Some("AO2".to_owned()), parsed.remarks.unwrap().station_type);
 }
+
+#[test]
+fn remark_temp_detail() {
+    let parsed =
+        parse_metar("KRDU 041351Z 00000KT 10SM FEW150 SCT250 04/00 A3005 RMK AO2 T00440000");
+
+    let temp_breakdown = parsed
+        .remarks
+        .expect("should have remarks")
+        .temp_breakdown
+        .expect("should have temp breakdown");
+
+    assert_eq!(4.4, temp_breakdown.temp);
+    assert_eq!(0.0, temp_breakdown.dewpoint);
+}
+
+#[test]
+fn remark_temp_detail_negative() {
+    let parsed =
+        parse_metar("KRDU 041351Z 00000KT 10SM FEW150 SCT250 04/00 A3005 RMK AO2 T10441056");
+
+    let temp_breakdown = parsed
+        .remarks
+        .expect("should have remarks")
+        .temp_breakdown
+        .expect("should have temp breakdown");
+
+    assert_eq!(-4.4, temp_breakdown.temp);
+    assert_eq!(-5.6, temp_breakdown.dewpoint);
+}
