@@ -6,7 +6,8 @@ observation_time = { ASCII_DIGIT{6} ~ "Z" }
 auto_kw = { "AUTO" }
 
 // Mark wind as "compound atomic" rule to prohibit whitespace between elements.
-wind = ${ direction ~ wind_speed ~ "KT" }
+wind = ${ direction ~ wind_speed ~ wind_gust? ~ "KT" }
+wind_gust = ${ "G" ~ wind_speed }
 wind_speed = { ASCII_DIGIT{2} }
 
 visibility = ${ visibility_distance ~ "SM" }

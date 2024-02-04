@@ -63,9 +63,20 @@ pub fn parse_metar(metar: &str) -> Result<Metar, ParseError> {
                 let raw_direction = pairs.next().unwrap().as_str();
                 let raw_speed = pairs.next().unwrap().as_str();
 
+                // If there is another element, it must be the gust speed.
+                let gust_speed = pairs.next().map(|gusting| {
+                    gusting
+                        .as_str()
+                        .strip_prefix('G')
+                        .unwrap()
+                        .parse::<u8>()
+                        .unwrap()
+                });
+
                 wind = Some(metar::Wind {
                     direction: raw_direction.parse().unwrap(),
                     speed: raw_speed.parse().unwrap(),
+                    gust_speed,
                 });
             }
             Rule::visibility => visibility = Some(pair.as_str().parse()?),
